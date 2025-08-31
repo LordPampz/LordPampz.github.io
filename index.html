@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>Marina St Louis Presentación</title>
+    <title>Documento PDF</title>
     <style>
         body, html {
             margin: 0;
@@ -12,7 +12,6 @@
             width: 100%;
             font-family: Arial, sans-serif;
             background-color: #f5f5f5;
-            overflow: hidden;
         }
         
         #pdf-container {
@@ -29,47 +28,50 @@
             text-align: center;
             font-size: 18px;
             color: #333;
-            z-index: 50;
         }
         
-        .download-button {
+        .ios-message {
             position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            text-decoration: none;
-            color: #007aff;
-        }
-        
-        .download-button svg {
-            width: 20px;
-            height: 20px;
-        }
-        
-        .mobile-message {
-            display: none;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            text-align: center;
-            padding: 10px;
-            position: fixed;
-            bottom: 0;
+            top: 0;
             left: 0;
             right: 0;
-            z-index: 100;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            z-index: 1000;
         }
         
+        .ios-button {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #007aff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        /* Para dispositivos móviles no iOS */
         @media screen and (max-width: 768px) {
             .mobile-message {
                 display: block;
+                background: rgba(0,0,0,0.7);
+                color: white;
+                text-align: center;
+                padding: 10px;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 100;
+            }
+        }
+        
+        @media screen and (min-width: 769px) {
+            .mobile-message {
+                display: none;
             }
         }
     </style>
@@ -77,13 +79,15 @@
 <body>
     <div class="loading" id="loading">Cargando documento...</div>
     
-    <a href="#" id="download-button" class="download-button" title="Descargar PDF">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"></path>
-        </svg>
-    </a>
+    <div id="ios-message" style="display:none;" class="ios-message">
+        Safari en iOS tiene limitaciones para mostrar PDFs. Por favor elige una opción:
+        <div>
+            <a id="open-pdf" href="#" class="ios-button">Abrir PDF</a>
+            <a id="download-pdf" href="#" class="ios-button">Descargar PDF</a>
+        </div>
+    </div>
     
-    <div class="mobile-message" id="mobile-message">
+    <div class="mobile-message" id="mobile-message" style="display:none;">
         Desliza para navegar por el documento
     </div>
     
@@ -96,33 +100,28 @@
         
         const pdfUrl = 'marina.pdf';
         
-        // Configurar botón de descarga
-        document.getElementById('download-button').href = pdfUrl;
-        document.getElementById('download-button').setAttribute('download', 'marina.pdf');
-        
         // Función para manejar diferentes dispositivos/navegadores
         function setupPDFViewer() {
+            // Ocultar mensaje de carga
+            document.getElementById('loading').style.display = 'none';
+            
             // Para Safari en iOS
             if (isIOS && isSafari) {
-                // Cargar directamente el PDF con el visor nativo de iOS
+                document.getElementById('ios-message').style.display = 'block';
+                
+                // Configurar botones para iOS
+                document.getElementById('open-pdf').href = pdfUrl;
+                document.getElementById('download-pdf').href = pdfUrl;
+                document.getElementById('download-pdf').setAttribute('download', 'marina.pdf');
+                
+                // También cargar el PDF directamente (funcionará parcialmente)
                 const directViewer = document.createElement('object');
                 directViewer.data = pdfUrl;
                 directViewer.type = 'application/pdf';
                 directViewer.width = '100%';
                 directViewer.height = '100%';
+                directViewer.style.marginTop = '80px'; // Espacio para el mensaje de iOS
                 document.getElementById('pdf-container').appendChild(directViewer);
-                
-                // También agregamos un iframe como fallback
-                const fallbackFrame = document.createElement('iframe');
-                fallbackFrame.src = pdfUrl;
-                fallbackFrame.width = '100%';
-                fallbackFrame.height = '100%';
-                fallbackFrame.style.border = 'none';
-                fallbackFrame.style.position = 'absolute';
-                fallbackFrame.style.top = '0';
-                fallbackFrame.style.left = '0';
-                fallbackFrame.style.zIndex = '10';
-                directViewer.appendChild(fallbackFrame);
             }
             // Para otros navegadores, usar PDF.js
             else {
@@ -135,6 +134,11 @@
                     // Configurar PDF.js
                     window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.worker.min.js';
                     
+                    // Mostrar mensaje en móviles no iOS
+                    if (window.innerWidth <= 768) {
+                        document.getElementById('mobile-message').style.display = 'block';
+                    }
+                    
                     // Crear iframe para el visor
                     const iframe = document.createElement('iframe');
                     iframe.src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(window.location.href.replace(/\/[^/]*$/, '/') + pdfUrl)}`;
@@ -146,9 +150,6 @@
                     document.getElementById('pdf-container').appendChild(iframe);
                 };
             }
-            
-            // Ocultar mensaje de carga
-            document.getElementById('loading').style.display = 'none';
         }
         
         // Iniciar el visor
