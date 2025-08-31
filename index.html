@@ -11,6 +11,7 @@
             height: 100%;
             width: 100%;
             font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
         }
         
         #pdf-container {
@@ -19,16 +20,41 @@
             display: block;
         }
         
-        /* Para dispositivos móviles */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .ios-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            z-index: 1000;
+        }
+        
+        .ios-button {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #007aff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        /* Para dispositivos móviles no iOS */
         @media screen and (max-width: 768px) {
-            #pdf-container {
-                height: 100%;
-                width: 100%;
-                position: absolute;
-                top: 0;
-                left: 0;
-            }
-            
             .mobile-message {
                 display: block;
                 background: rgba(0,0,0,0.7);
@@ -48,56 +74,86 @@
                 display: none;
             }
         }
-        
-        .loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
     </style>
 </head>
 <body>
     <div class="loading" id="loading">Cargando documento...</div>
     
-    <!-- Mensaje para dispositivos móviles -->
-    <div class="mobile-message">
+    <div id="ios-message" style="display:none;" class="ios-message">
+        Safari en iOS tiene limitaciones para mostrar PDFs. Por favor elige una opción:
+        <div>
+            <a id="open-pdf" href="#" class="ios-button">Abrir PDF</a>
+            <a id="download-pdf" href="#" class="ios-button">Descargar PDF</a>
+        </div>
+    </div>
+    
+    <div class="mobile-message" id="mobile-message" style="display:none;">
         Desliza para navegar por el documento
     </div>
     
-    <!-- Contenedor para el visor de PDF -->
     <div id="pdf-container"></div>
     
-    <!-- PDF.js library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.min.js"></script>
     <script>
-        // La ruta a worker de PDF.js
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.worker.min.js';
+        // Detectar iOS Safari
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
         
-        // Cargar el PDF
         const pdfUrl = 'marina.pdf';
         
-        // Mostrar PDF con PDF.js
-        const loadingTask = pdfjsLib.getDocument(pdfUrl);
-        loadingTask.promise.then(function(pdf) {
+        // Función para manejar diferentes dispositivos/navegadores
+        function setupPDFViewer() {
             // Ocultar mensaje de carga
             document.getElementById('loading').style.display = 'none';
             
-            // Crear iframe para el visor
-            const iframe = document.createElement('iframe');
-            iframe.src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(window.location.href.replace(/\/[^/]*$/, '/') + pdfUrl)}`;
-            iframe.width = '100%';
-            iframe.height = '100%';
-            iframe.style.border = 'none';
-            
-            // Añadir iframe al contenedor
-            document.getElementById('pdf-container').appendChild(iframe);
-        }).catch(function(error) {
-            // Manejar errores
-            console.error('Error al cargar el PDF:', error);
-            document.getElementById('loading').innerHTML = 'Error al cargar el documento. <br><a href="' + pdfUrl + '">Descargar PDF</a>';
-        });
+            // Para Safari en iOS
+            if (isIOS && isSafari) {
+                document.getElementById('ios-message').style.display = 'block';
+                
+                // Configurar botones para iOS
+                document.getElementById('open-pdf').href = pdfUrl;
+                document.getElementById('download-pdf').href = pdfUrl;
+                document.getElementById('download-pdf').setAttribute('download', 'documento.pdf');
+                
+                // También cargar el PDF directamente (funcionará parcialmente)
+                const directViewer = document.createElement('object');
+                directViewer.data = pdfUrl;
+                directViewer.type = 'application/pdf';
+                directViewer.width = '100%';
+                directViewer.height = '100%';
+                directViewer.style.marginTop = '80px'; // Espacio para el mensaje de iOS
+                document.getElementById('pdf-container').appendChild(directViewer);
+            }
+            // Para otros navegadores, usar PDF.js
+            else {
+                // Cargar PDF.js dinamicamente
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.min.js';
+                document.body.appendChild(script);
+                
+                script.onload = function() {
+                    // Configurar PDF.js
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.worker.min.js';
+                    
+                    // Mostrar mensaje en móviles no iOS
+                    if (window.innerWidth <= 768) {
+                        document.getElementById('mobile-message').style.display = 'block';
+                    }
+                    
+                    // Crear iframe para el visor
+                    const iframe = document.createElement('iframe');
+                    iframe.src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(window.location.href.replace(/\/[^/]*$/, '/') + pdfUrl)}`;
+                    iframe.width = '100%';
+                    iframe.height = '100%';
+                    iframe.style.border = 'none';
+                    
+                    // Añadir iframe al contenedor
+                    document.getElementById('pdf-container').appendChild(iframe);
+                };
+            }
+        }
+        
+        // Iniciar el visor
+        window.onload = setupPDFViewer;
     </script>
 </body>
 </html>
