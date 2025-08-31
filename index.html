@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>Documento PDF</title>
+    <title>Marina St Louis Presentación</title>
     <style>
         body, html {
             margin: 0;
@@ -67,15 +67,83 @@
             z-index: 100;
         }
         
+        /* Estilos para la pantalla de bienvenida de Safari */
+        #safari-welcome {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f8f8f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 1000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        #safari-welcome h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 24px;
+        }
+        
+        #safari-welcome p {
+            margin-bottom: 30px;
+            color: #666;
+            font-size: 16px;
+            max-width: 600px;
+        }
+        
+        .safari-button {
+            background-color: #007aff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .safari-secondary-button {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+        
         @media screen and (max-width: 768px) {
             .mobile-message {
                 display: block;
+            }
+            
+            #safari-welcome h2 {
+                font-size: 22px;
+            }
+            
+            #safari-welcome p {
+                font-size: 14px;
             }
         }
     </style>
 </head>
 <body>
     <div class="loading" id="loading">Cargando documento...</div>
+    
+    <!-- Pantalla de bienvenida para Safari en iOS -->
+    <div id="safari-welcome" style="display:none;">
+        <h2>Documento PDF</h2>
+        <p>Para una mejor experiencia de visualización en Safari, elija cómo desea ver el documento:</p>
+        <div>
+            <button class="safari-button" id="view-pdf-button">Ver PDF</button>
+            <a href="#" id="safari-download-button" class="safari-button safari-secondary-button">Descargar PDF</a>
+        </div>
+    </div>
     
     <a href="#" id="download-button" class="download-button" title="Descargar PDF" style="display:none;">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -92,9 +160,11 @@
     <script>
         const pdfUrl = 'marina.pdf';
         
-        // Configurar botón de descarga
+        // Configurar botones de descarga
         document.getElementById('download-button').href = pdfUrl;
         document.getElementById('download-button').setAttribute('download', 'marina.pdf');
+        document.getElementById('safari-download-button').href = pdfUrl;
+        document.getElementById('safari-download-button').setAttribute('download', 'marina.pdf');
         
         // Detección mejorada de navegador Safari
         function isSafariBrowser() {
@@ -106,22 +176,37 @@
             return isIOS && isSafari;
         }
         
+        // Función para cargar el PDF en Safari
+        function loadSafariPDF() {
+            // Ocultar pantalla de bienvenida
+            document.getElementById('safari-welcome').style.display = 'none';
+            
+            // Mostrar botón de descarga pequeño
+            document.getElementById('download-button').style.display = 'flex';
+            
+            // Cargar el PDF en Safari de manera que se visualice correctamente
+            const directViewer = document.createElement('iframe');
+            directViewer.src = pdfUrl;
+            directViewer.width = '100%';
+            directViewer.height = '100%';
+            directViewer.style.border = 'none';
+            document.getElementById('pdf-container').appendChild(directViewer);
+        }
+        
         // Función para manejar diferentes navegadores
         function setupPDFViewer() {
+            // Ocultar mensaje de carga
+            document.getElementById('loading').style.display = 'none';
+            
             // Para Safari en iOS específicamente (no Chrome ni otros en iOS)
             if (isSafariBrowser()) {
-                console.log("Detectado Safari en iOS - usando visor nativo");
+                console.log("Detectado Safari en iOS - mostrando pantalla de bienvenida");
                 
-                // Mostrar botón de descarga
-                document.getElementById('download-button').style.display = 'flex';
+                // Mostrar pantalla de bienvenida para Safari
+                document.getElementById('safari-welcome').style.display = 'flex';
                 
-                // Cargar directamente el PDF con el visor nativo de iOS Safari
-                const directViewer = document.createElement('iframe');
-                directViewer.src = pdfUrl;
-                directViewer.width = '100%';
-                directViewer.height = '100%';
-                directViewer.style.border = 'none';
-                document.getElementById('pdf-container').appendChild(directViewer);
+                // Configurar botón "Ver PDF"
+                document.getElementById('view-pdf-button').addEventListener('click', loadSafariPDF);
             }
             // Para todos los demás navegadores (incluyendo Chrome en iOS)
             else {
@@ -152,9 +237,6 @@
                     document.getElementById('pdf-container').appendChild(iframe);
                 }
             }
-            
-            // Ocultar mensaje de carga
-            document.getElementById('loading').style.display = 'none';
         }
         
         // Iniciar el visor
